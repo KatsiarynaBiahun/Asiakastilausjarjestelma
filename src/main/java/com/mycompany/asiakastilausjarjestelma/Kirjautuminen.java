@@ -135,10 +135,33 @@ public class Kirjautuminen extends javax.swing.JFrame {
         // KiSsa123#!
         String tunnus = jtxtTunnus.getText();
         String oikeasalasanatietokannassa = "";
-
+        
         char annettusalasana[] = jpswSalasana.getPassword();
         char[] oikeasalasanataulukkona = null;
 
+        //annettusalasanaTietokannasta -haku (annettusalasana+salt) SQL-kyselyn avulla
+        String annettusalasanaTietokannasta = "";
+        char[] tulosAnnettu = null;
+        
+        String syote = String.valueOf(annettusalasana);
+        
+        Connection cn1 = luoYhteys();
+
+        String sqlKysely1 = "Select SHA2('" + syote + "',256)";
+        
+        try {
+            PreparedStatement stm1 = cn1.prepareStatement(sqlKysely1);
+            ResultSet tulos1 = stm1.executeQuery();
+
+            if (tulos1.next()) {
+                annettusalasanaTietokannasta = tulos1.getString("").trim();
+                tulosAnnettu = annettusalasanaTietokannasta.toCharArray();
+            }
+         } catch (SQLException ex) {
+            Logger.getLogger(Kirjautuminen.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        //oikeasalasanatietokannassa -haku ja vertailu
         Connection cn = luoYhteys();
 
         String sqlKysely = "SELECT TUNNUS, DES_DECRYPT (SALASANA, 'salainenavain') AS SALASANA FROM KAYTTAJA WHERE TUNNUS ='" + tunnus + "'";
@@ -151,7 +174,7 @@ public class Kirjautuminen extends javax.swing.JFrame {
                 oikeasalasanatietokannassa = tulos.getString("SALASANA").trim();
                 oikeasalasanataulukkona = oikeasalasanatietokannassa.toCharArray();
 
-                if (Arrays.equals(annettusalasana, oikeasalasanataulukkona)) {
+                if (Arrays.equals(tulosAnnettu, oikeasalasanataulukkona)) {
                     Asiakasrekisteri g = new Asiakasrekisteri(tunnus);
                     g.setVisible(true);
                     sulje();
